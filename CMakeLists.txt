@@ -145,6 +145,9 @@ include_directories(
    src/baby_ctrl.cpp
  )
 
+ add_library(wanderer_ctrl
+   src/wanderer_ctrl.cpp
+ )
 # add_library(multi_target_ctrl
 #   src/multi_target_ctrl.cpp
 # )
@@ -160,6 +163,7 @@ add_executable(dqn_stage_bridge_node src/dqn_stage_bridge.cpp)
 # add_dependencies(DQNStageROS ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(robot_ctrl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(baby_ctrl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(wanderer_ctrl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 #add_dependencies(multi_robot_ctrl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
@@ -183,6 +187,10 @@ target_link_libraries(robot_ctrl
   ${STAGE_LIBRARIES}
 )
 target_link_libraries(baby_ctrl
+  ${catkin_LIBRARIES}
+  ${STAGE_LIBRARIES}
+)
+target_link_libraries(wanderer_ctrl
   ${catkin_LIBRARIES}
   ${STAGE_LIBRARIES}
 )
