@@ -6,7 +6,7 @@ include "pioneer.inc"
 include "map.inc"
 include "sick.inc"
 
-paused      0
+paused      1
 speedup     -1.000
 show_clock  0
 show_clock_interval 10000
@@ -47,7 +47,7 @@ floorplan
   name "blank"
   size [40.000 40.000 0.800]
   pose [0.000 0.000 0.000 0.000]
-  bitmap "rinkDQN-noLocalMinima.png"
+  bitmap "map.png"
   obstacle_return 0
 
 )
@@ -102,5 +102,5 @@ zone (
 #
 agent( 
   name "mishu"
-  pose [-4.185 -11.626 0.000 0.000 ]
+  pose [-0.185 -1.626 0.000 0.000 ]
   )

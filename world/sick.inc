@@ -4,7 +4,7 @@ define sicksensor sensor
   # factory settings for LMS200	
   range [ 0.0 6.0 ]
   pose [ 0 0 0.1 0 ]
-  fov 360
+  fov 180 #360
   samples 360
   #samples 90 # still useful but much faster to compute
   color_rgba [0 0 1 0.15]
