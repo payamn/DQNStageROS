@@ -196,7 +196,9 @@ void stgLaserCB( Model* mod, ModelRobot* robot)
   // if( allowNewMsg
   //     && laserMsgs.header.stamp > lastSentTime
   //     && rosCurPose.header.stamp > lastSentTime)
-    {
+    
+      if (turn_speed > 0.01 || turn_speed<-0.01)
+      {
       if (collision)
       {
         ROS_WARN("You collided");
@@ -209,6 +211,7 @@ void stgLaserCB( Model* mod, ModelRobot* robot)
       stage_msg.minFrontDist = minFrontDist;
       stage_msg.position = rosCurPose;
       stage_msg.laser = rosLaserData;
+      
       pub_state_.publish(stage_msg);
 
       // publish the command velocity

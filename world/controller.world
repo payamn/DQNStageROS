@@ -45,9 +45,9 @@ window
 floorplan
 (
   name "blank"
-  size [40.000 40.000 0.800]
+  size [180.000 180.000 0.800]
   pose [0.000 0.000 0.000 0.000]
-  bitmap "rinkDQN-noLocalMinima.png"
+  bitmap "hospital.png"
   obstacle_return 0
 
 )

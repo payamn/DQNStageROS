@@ -7,14 +7,22 @@ import numpy as np
 import tensorflow as tf
 from shared import *
 
+import sys
+
+if len(sys.argv) != 2:
+    print ('Usage: python train.py <dataset_dir>')
+    exit(0)
+
+dataset_dir = sys.argv[1]
+
 class CmdVelPublisher:
     def __init__(self):
         self.sess = tf.Session()
         self.input_tensor = tf.placeholder(tf.float32, shape=(1, 360))
         self.predictions, self.end_points = my_cnn(self.input_tensor, is_training=False)
         self.saver = tf.train.Saver()
-        self.saver.restore(self.sess, "/tmp/tfslim_model_log/model.ckpt-1000")
-        
+        self.saver.restore(self.sess, dataset_dir)
+
         self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=100, latch=True)
 
     def laserCallback(self, laser_scan):

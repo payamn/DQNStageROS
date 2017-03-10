@@ -55,7 +55,8 @@ def train(dataset_dir):
             logdir=log_dir,
             number_of_steps=NUM_EPOCHS,
             save_summaries_secs=5,
-            log_every_n_steps=500
+            log_every_n_steps=500,
+            save_interval_secs=60
         )
 
         print('Finished training. Final batch loss %d' % final_loss)

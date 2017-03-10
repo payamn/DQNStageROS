@@ -7,7 +7,7 @@ include "map.inc"
 include "sick.inc"
 
 paused      1
-speedup     -1.000
+speedup     55.695
 show_clock  0
 show_clock_interval 10000
 resolution  0.2
@@ -16,11 +16,11 @@ threads   4
 # configure the GUI window
 window
 (
-  size [ 1920 1179 ] # in pixels
+  size [ 1855 1056 ] # in pixels
   
 # Camera options 
-  scale 28.346            
-  center [ -3.449  0.068 ]
+  scale 13.224            
+  center [ 1.167  -18.530 ]
   rotate [ 0.000  0.000 ]
 
 # perspective camera options
@@ -45,9 +45,10 @@ window
 floorplan
 (
   name "blank"
-  size [40.000 40.000 0.800]
+  size [140.000 140.000 0.800]
   pose [0.000 0.000 0.000 0.000]
-  bitmap "map.png"
+#bitmap "map.png"
+  bitmap "hospital.png"
   obstacle_return 0
 
 )
@@ -102,5 +103,5 @@ zone (
 #
 agent( 
   name "mishu"
-  pose [-0.185 -1.626 0.000 0.000 ]
+  pose [-4.096 -14.091 0.000 -56.231 ]
   )

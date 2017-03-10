@@ -11,7 +11,7 @@ import numpy as np
 
 slim = tf.contrib.slim
 
-NUM_EPOCHS = 1000
+NUM_EPOCHS = 100000
 SHARD_SIZE = 10000
 BATCH_SIZE = 32
 _FILE_PATTERN = 'wanderer_%s_*.tfrecords'
@@ -85,26 +85,32 @@ def my_cnn(inputs, is_training):  # is_training is not used...
 
             # Creates a fully connected layer from the inputs with 32 hidden units. 
 
-            net = conv1d(inputs, 32) # 360x32
-            end_points['conv1d_1'] = net
+            # net = conv1d(inputs, 32) # 360x32
+            # end_points['conv1d_1'] = net
 
-            net = tf.nn.max_pool(net, ksize=[1, 2, 1, 1], strides=[1, 2, 1, 1], padding='SAME') # 180x16
-            end_points['maxpool_1'] = net
+            # net = tf.nn.max_pool(net, ksize=[1, 2, 1, 1], strides=[1, 2, 1, 1], padding='SAME') # 180x16
+            # end_points['maxpool_1'] = net
 
             # net = tf.nn.conv1d(net, [3, 16, 32], stride=1, padding="SAME") # 180x32
             # end_points['conv1d_2'] = net
 
-            net = tf.nn.max_pool(net, ksize=[1, 2, 1, 1], strides=[1, 2, 1, 1], padding='SAME') # 90x32
-            end_points['maxpool_2'] = net
+            # net = tf.nn.max_pool(net, ksize=[1, 2, 1, 1], strides=[1, 2, 1, 1], padding='SAME') # 90x32
+            # end_points['maxpool_2'] = net
 
-            net = slim.flatten(net) # 90*32 = 2880
+            # net = slim.flatten(net) # 90*32 = 2880
+
+            # net = tf.nn.conv1d(inputs, [], stride=2, padding="VALID")
+
+            # Creates a fully connected layer from the inputs with 32 hidden units.
+            net = slim.fully_connected(inputs, 32, scope='fc1')
+            end_points['fc1'] = net
 
             # Adds a dropout layer to prevent over-fitting.
             net = slim.dropout(net, 0.8, is_training=is_training)
 
             # Adds another fully connected layer with 16 hidden units.
-            # net = slim.fully_connected(net, 16, scope='fc2')
-            # end_points['fc2'] = net
+            net = slim.fully_connected(net, 16, scope='fc2')
+            end_points['fc2'] = net
 
             # Creates a fully-connected layer with a single hidden unit. Note that the
             # layer is made linear by setting activation_fn=None.
