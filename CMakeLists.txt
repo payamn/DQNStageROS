@@ -20,6 +20,8 @@ find_package(OpenCV 3 REQUIRED)# PATHS ${CUSTOM_OPENCV_DIR} NO_DEFAULT_PATH)
 
 find_package(stage REQUIRED)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -129,7 +131,7 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
-	${STAGE_INCLUDE_DIRS}
+  ${STAGE_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -148,6 +150,14 @@ include_directories(
  add_library(wanderer_ctrl
    src/wanderer_ctrl.cpp
  )
+
+ add_library(joystick_ctrl
+   src/joystick_ctrl.cpp
+ )
+
+ add_library(image_ctrl
+   src/image_ctrl.cpp
+ )
 # add_library(multi_target_ctrl
 #   src/multi_target_ctrl.cpp
 # )
@@ -164,6 +174,8 @@ add_executable(dqn_stage_bridge_node src/dqn_stage_bridge.cpp)
 add_dependencies(robot_ctrl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(baby_ctrl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(wanderer_ctrl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(joystick_ctrl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(image_ctrl ${${PROJECT_NAME}_EXPORTED_TARGETS}) #${catkin_EXPORTED_TARGETS})
 #add_dependencies(multi_robot_ctrl ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
@@ -192,6 +204,14 @@ target_link_libraries(baby_ctrl
 )
 target_link_libraries(wanderer_ctrl
   ${catkin_LIBRARIES}
+  ${STAGE_LIBRARIES}
+)
+target_link_libraries(joystick_ctrl
+  ${catkin_LIBRARIES}
+  ${STAGE_LIBRARIES}
+)
+target_link_libraries(image_ctrl
+  # ${catkin_LIBRARIES}
   ${STAGE_LIBRARIES}
 )
 #target_link_libraries(multi_target_ctrl

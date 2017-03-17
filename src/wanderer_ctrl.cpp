@@ -43,7 +43,7 @@ bool allowNewMsg = true;
 double minFrontDist;
 ros::Time lastSentTime;
 
-void stgPoseUpdateCB( Model* mod, ModelRobot* robot)
+int stgPoseUpdateCB( Model* mod, ModelRobot* robot)
 {
   geometry_msgs::PoseStamped positionMsg;
   positionMsg.pose.position.x = robot->pos->GetPose().x;
@@ -52,15 +52,26 @@ void stgPoseUpdateCB( Model* mod, ModelRobot* robot)
   positionMsg.pose.orientation = tf::createQuaternionMsgFromYaw( robot->pos->GetPose().a);
   positionMsg.header.stamp = ros::Time::now();
   rosCurPose = positionMsg;
+
+  return 0;
 }
 
-void stgLaserCB( Model* mod, ModelRobot* robot)
+int stgLaserCB( Model* mod, ModelRobot* robot)
 {
+  ROS_INFO(
+    "%f, %f, %f", 
+    robot->pos->GetWorld()->GetGround()->GetGeom().size.x,
+    robot->pos->GetWorld()->GetGround()->GetGeom().size.y,
+    robot->pos->GetWorld()->GetGround()->GetGeom().size.z
+  );
+
+  return 0;
+
   // get the data
   const std::vector<meters_t>& scan = robot->laser->GetSensors()[0].ranges;
   uint32_t sample_count = scan.size();
   if( sample_count < 1 )
-    return;
+    return 0;
   
   bool obstruction = false;
   bool stop = false;
@@ -192,37 +203,37 @@ void stgLaserCB( Model* mod, ModelRobot* robot)
     }
   
 
-  //temp, just to check publish rate:
+  // temp, just to check publish rate:
   // if( allowNewMsg
   //     && laserMsgs.header.stamp > lastSentTime
   //     && rosCurPose.header.stamp > lastSentTime)
     
       if (turn_speed > 0.01 || turn_speed<-0.01)
       {
-      if (collision)
-      {
-        ROS_WARN("You collided");
-      }
+        if (collision)
+        {
+          ROS_WARN("You collided");
+        }
 
-      allowNewMsg = false;
-      dqn_stage_ros::stage_message stage_msg;
-      stage_msg.header.stamp = ros::Time::now();
-      stage_msg.collision = collision;
-      stage_msg.minFrontDist = minFrontDist;
-      stage_msg.position = rosCurPose;
-      stage_msg.laser = rosLaserData;
-      
-      pub_state_.publish(stage_msg);
+        allowNewMsg = false;
+        dqn_stage_ros::stage_message stage_msg;
+        stage_msg.header.stamp = ros::Time::now();
+        stage_msg.collision = collision;
+        stage_msg.minFrontDist = minFrontDist;
+        stage_msg.position = rosCurPose;
+        stage_msg.laser = rosLaserData;
+        
+        pub_state_.publish(stage_msg);
 
-      // publish the command velocity
-      geometry_msgs::TwistStamped twist_msg;
-      twist_msg.header.stamp = stage_msg.header.stamp;
-      twist_msg.twist.linear.x = x_speed;
-      twist_msg.twist.angular.z = turn_speed;
-      pub_cmd_vel_.publish(twist_msg);
-      
-
+        // publish the command velocity
+        geometry_msgs::TwistStamped twist_msg;
+        twist_msg.header.stamp = stage_msg.header.stamp;
+        twist_msg.twist.linear.x = x_speed;
+        twist_msg.twist.angular.z = turn_speed;
+        pub_cmd_vel_.publish(twist_msg);
     }
+
+  return 0;
 }
 
 void rosVelocityCB( const geometry_msgs::TwistConstPtr vel)
