@@ -134,6 +134,11 @@ include_directories(
   ${STAGE_INCLUDE_DIRS}
 )
 
+# Project libraries
+add_library(project_libraries
+	src/Map.cpp
+)
+
 ## Declare a C++ library
  add_library(target_ctrl
    src/target_ctrl.cpp
@@ -205,6 +210,8 @@ target_link_libraries(baby_ctrl
 target_link_libraries(wanderer_ctrl
   ${catkin_LIBRARIES}
   ${STAGE_LIBRARIES}
+  project_libraries
+  ${OpenCV_LIBRARIES}
 )
 target_link_libraries(joystick_ctrl
   ${catkin_LIBRARIES}

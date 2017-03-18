@@ -8,13 +8,20 @@
 #include <std_srvs/Empty.h>
 #include <tf/tf.h>
 
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/Image.h>
+
+#include "Map.h"
+
 using namespace Stg;
 
 static const double cruisespeed = 0.4; 
 static const double avoidspeed = 0.05; 
 static const double avoidturn = 0.5;
 static const double minfrontdistance = 1.0; // 0.6  
-static const bool verbose = true;
+static const bool verbose = false;
 static const double stopdist = 0.3;
 static const int avoidduration = 10;
 
@@ -32,6 +39,7 @@ usec_t stgSpeedTime;
 ros::NodeHandle* n;
 ros::Publisher pub_state_;
 ros::Publisher pub_cmd_vel_;
+image_transport::Publisher image_pub_;
 
 ros::Subscriber sub_vel_;
 ros::ServiceServer reset_srv_;
@@ -42,6 +50,8 @@ bool collision = false;
 bool allowNewMsg = true;
 double minFrontDist;
 ros::Time lastSentTime;
+
+Map map;
 
 int stgPoseUpdateCB( Model* mod, ModelRobot* robot)
 {
@@ -58,14 +68,20 @@ int stgPoseUpdateCB( Model* mod, ModelRobot* robot)
 
 int stgLaserCB( Model* mod, ModelRobot* robot)
 {
-  ROS_INFO(
-    "%f, %f, %f", 
-    robot->pos->GetWorld()->GetGround()->GetGeom().size.x,
-    robot->pos->GetWorld()->GetGround()->GetGeom().size.y,
-    robot->pos->GetWorld()->GetGround()->GetGeom().size.z
+  map.setCell(
+    robot->pos->GetPose().x,
+    robot->pos->GetPose().y,
+    255
   );
 
-  return 0;
+  cv::Mat flipped_map;               
+  cv::flip(map.getMap(), flipped_map, 0);
+
+  image_pub_.publish(
+    cv_bridge::CvImage(std_msgs::Header(), "mono8", flipped_map).toImageMsg()
+  );
+
+  
 
   // get the data
   const std::vector<meters_t>& scan = robot->laser->GetSensors()[0].ranges;
@@ -73,8 +89,37 @@ int stgLaserCB( Model* mod, ModelRobot* robot)
   if( sample_count < 1 )
     return 0;
   
+  // create obstacles in map
+  double laser_orientation = robot->pos->GetPose().a - M_PI/2.0;
+  for (uint32_t i = 0; i < sample_count; i++) {
+    if (scan[i] >= 6.0) {
+      continue;
+    }
+
+    laser_orientation = atan2(sin(laser_orientation), cos(laser_orientation));
+    ROS_INFO("laser_orientation: %f", laser_orientation * 180 / M_PI);
+
+    double laser_x, laser_y;
+    laser_x = robot->pos->GetPose().x +  scan[i] * cos(laser_orientation);
+    laser_y = robot->pos->GetPose().y +  scan[i] * sin(laser_orientation);
+
+    // ROS_INFO("laser: %f, %f", laser_x, laser_y);
+
+    map.setCell(
+      laser_x,
+      laser_y,
+      127
+    );
+
+    laser_orientation += M_PI / sample_count;
+  }
+  return 0;
+  
+
   bool obstruction = false;
   bool stop = false;
+
+
 
   double x_speed;
   double turn_speed;
@@ -264,6 +309,9 @@ extern "C" int Init( Model* mod )
   pub_state_ = n->advertise<dqn_stage_ros::stage_message>("input_data", 15);
   pub_cmd_vel_ = n->advertise<geometry_msgs::TwistStamped>("cmd_vel_stamped", 15);
 
+  image_transport::ImageTransport it(*n);
+  image_pub_ = it.advertise("/map", 1);
+
   sub_vel_ = n->subscribe( "cmd_vel", 15, &rosVelocityCB);
   reset_srv_ = n->advertiseService("reset_positions", &rosResetSrvCB);
   robot = new ModelRobot;
@@ -275,6 +323,13 @@ extern "C" int Init( Model* mod )
   robot->laser = (ModelRanger*)mod->GetChild("ranger:0");
   robot->laser->AddCallback( Model::CB_UPDATE, (model_callback_t)stgLaserCB, robot);
   robot->laser->Subscribe();
+
+  Model *floorplan = robot->pos->GetWorld()->GetModel("blank");
+  map.initMap(
+    floorplan->GetGeom().size.x,
+    floorplan->GetGeom().size.y
+  );
+
   return 0; //ok
 }
 

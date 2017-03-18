@@ -7,7 +7,7 @@ include "map.inc"
 include "sick.inc"
 
 paused      1
-speedup     55.695
+# speedup     55.695
 show_clock  0
 show_clock_interval 10000
 resolution  0.2
