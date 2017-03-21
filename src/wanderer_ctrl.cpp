@@ -21,7 +21,7 @@ static const double cruisespeed = 0.4;
 static const double avoidspeed = 0.05; 
 static const double avoidturn = 0.5;
 static const double minfrontdistance = 1.0; // 0.6  
-static const bool verbose = false;
+static const bool verbose = true;
 static const double stopdist = 0.3;
 static const int avoidduration = 10;
 
@@ -55,67 +55,17 @@ Map map;
 
 void updateMap()
 {
-  // get the data
-  const std::vector<meters_t>& scan = robot->laser->GetSensors()[0].ranges;
-  uint32_t sample_count = scan.size();
-  if( sample_count < 1 )
-    return;
-  
-  const Stg::ModelRanger::Sensor& sensor = robot->laser->GetSensors()[0];
+  map.updateMap(robot->pos->GetPose(), robot->laser->GetSensors()[0]);
 
-  // debug
-  ROS_INFO("Robot POSE: %f, %f, %f", robot->pos->GetPose().x, robot->pos->GetPose().y, robot->pos->GetPose().a * 180 / M_PI);
-  ROS_INFO(
-    "Laser orientation: %f, %f", 
-    (robot->pos->GetPose().a - sensor.fov/2.0) * 180 / M_PI,
-    (robot->pos->GetPose().a + sensor.fov/2.0) * 180 / M_PI
-  );
-
-  
-  // update robot position
-  map.setCell(
-    robot->pos->GetPose().x,
-    robot->pos->GetPose().y,
-    255
-  );
-
-  // ------------------------------------------------------------------------------- //
-  
-  // create obstacles in map
-  double laser_orientation = robot->pos->GetPose().a - sensor.fov/2.0;
-  double angle_increment = sensor.fov/(double)(sensor.sample_count-1);
-
-  for (uint32_t i = 0; i < sample_count; i++) {
-    // normalize the angle
-    laser_orientation = atan2(sin(laser_orientation), cos(laser_orientation));
-    ROS_INFO("laser: %f", laser_orientation * 180 / M_PI);
-
-    if (scan[i] < 5.5) {
-      double laser_x, laser_y;
-      laser_x = robot->pos->GetPose().x +  scan[i] * cos(laser_orientation);
-      laser_y = robot->pos->GetPose().y +  scan[i] * sin(laser_orientation);
-
-      // ROS_INFO("laser: %f, %f", laser_x, laser_y);
-
-      map.setCell(
-        laser_x,
-        laser_y,
-        127
-      );
-    }
-
-    // TODO: don't hard code the laser resolution
-    laser_orientation += angle_increment;
-  }
-
-  // ------------------------------------------------------------------------------- //
-
+  // flip the image so that that it makes physical sense
   cv::Mat flipped_map;               
   cv::flip(map.getMap(), flipped_map, 0);
 
+  // publish the flipped image
   image_pub_.publish(
     cv_bridge::CvImage(std_msgs::Header(), "mono8", flipped_map).toImageMsg()
   );
+
 }
 
 int stgPoseUpdateCB( Model* mod, ModelRobot* robot)
@@ -128,12 +78,14 @@ int stgPoseUpdateCB( Model* mod, ModelRobot* robot)
   positionMsg.header.stamp = ros::Time::now();
   rosCurPose = positionMsg;
 
+  // update robot position in map
+  map.updateRobotPose(robot->pos->GetPose());
+
   return 0;
 }
 
 int stgLaserCB( Model* mod, ModelRobot* robot)
 {
-  
   updateMap();
 
   // get the data
@@ -142,93 +94,93 @@ int stgLaserCB( Model* mod, ModelRobot* robot)
   if( sample_count < 1 )
     return 0;
   
-  // bool obstruction = false;
-  // bool stop = false;
+  bool obstruction = false;
+  bool stop = false;
 
-  // double x_speed;
-  // double turn_speed;
+  double x_speed;
+  double turn_speed;
   
-  // // find the closest distance to the left and right and check if
-  // // there's anything in front
-  // double minleft = 1e6;
-  // double minright = 1e6;
+  // find the closest distance to the left and right and check if
+  // there's anything in front
+  double minleft = 1e6;
+  double minright = 1e6;
 
-  // for (uint32_t i = 0; i < sample_count; i++)
-  //   {
+  for (uint32_t i = 0; i < sample_count; i++)
+    {
 
-  //     // if( verbose ) printf( "%.3f ", scan[i] );
+      // if( verbose ) printf( "%.3f ", scan[i] );
 
-  //     if( (i > (sample_count/3)) 
-  //   && (i < (sample_count - (sample_count/3))) 
-  //   && scan[i] < minfrontdistance)
-  // {
-  //   if( verbose ) puts( "  obstruction!" );
-  //   obstruction = true;
-  // }
+      if( (i > (sample_count/3)) 
+    && (i < (sample_count - (sample_count/3))) 
+    && scan[i] < minfrontdistance)
+  {
+    if( verbose ) puts( "  obstruction!" );
+    obstruction = true;
+  }
     
-  //     if( scan[i] < stopdist )
-  // {
-  //   if( verbose ) puts( "  stopping!" );
-  //   stop = true;
-  // }
+      if( scan[i] < stopdist )
+  {
+    if( verbose ) puts( "  stopping!" );
+    stop = true;
+  }
       
-  //     if( i > sample_count/2 )
-  // minleft = std::min( minleft, scan[i] );
-  //     else      
-  // minright = std::min( minright, scan[i] );
-  //   }
+      if( i > sample_count/2 )
+  minleft = std::min( minleft, scan[i] );
+      else      
+  minright = std::min( minright, scan[i] );
+    }
   
-  // if( verbose ) 
-  //   {
-  //     puts( "" );
-  //     printf( "minleft %.3f \n", minleft );
-  //     printf( "minright %.3f\n ", minright );
-  //   }
+  if( verbose ) 
+    {
+      puts( "" );
+      printf( "minleft %.3f \n", minleft );
+      printf( "minright %.3f\n ", minright );
+    }
 
-  // if( obstruction || stop || (robot->avoidcount>0) )
-  //   {
-  //     if( verbose ) printf( "Avoid %d\n", robot->avoidcount );
+  if( obstruction || stop || (robot->avoidcount>0) )
+    {
+      if( verbose ) printf( "Avoid %d\n", robot->avoidcount );
         
-  //     robot->pos->SetXSpeed( stop ? 0.0 : avoidspeed ); 
-  //     x_speed = stop ? 0.0 : avoidspeed;    
+      robot->pos->SetXSpeed( stop ? 0.0 : avoidspeed ); 
+      x_speed = stop ? 0.0 : avoidspeed;    
       
-  //     /* once we start avoiding, select a turn direction and stick
-  //  with it for a few iterations */
-  //     if( robot->avoidcount < 1 )
-  //       {
-  //   if( verbose ) puts( "Avoid START" );
-  //         robot->avoidcount = random() % avoidduration + avoidduration;
+      /* once we start avoiding, select a turn direction and stick
+   with it for a few iterations */
+      if( robot->avoidcount < 1 )
+        {
+    if( verbose ) puts( "Avoid START" );
+          robot->avoidcount = random() % avoidduration + avoidduration;
        
-  //   if( minleft < minright  )
-  //     {
-  //       robot->pos->SetTurnSpeed( -avoidturn );
-  //       turn_speed = -avoidturn;
+    if( minleft < minright  )
+      {
+        robot->pos->SetTurnSpeed( -avoidturn );
+        turn_speed = -avoidturn;
 
-  //       if( verbose ) printf( "turning right %.2f\n", -avoidturn );
-  //     }
-  //   else
-  //     {
-  //       robot->pos->SetTurnSpeed( +avoidturn );
-  //       turn_speed = +avoidturn;
+        if( verbose ) printf( "turning right %.2f\n", -avoidturn );
+      }
+    else
+      {
+        robot->pos->SetTurnSpeed( +avoidturn );
+        turn_speed = +avoidturn;
 
-  //       if( verbose ) printf( "turning left %2f\n", +avoidturn );
-  //     }
-  //       }
+        if( verbose ) printf( "turning left %2f\n", +avoidturn );
+      }
+        }
     
-  //     robot->avoidcount--;
-  //   }
-  // else
-  //   {
-  //     if( verbose ) puts( "Cruise" );
+      robot->avoidcount--;
+    }
+  else
+    {
+      if( verbose ) puts( "Cruise" );
 
-  //     robot->avoidcount = 0;
-  //     robot->pos->SetXSpeed( cruisespeed );   
-  //     robot->pos->SetTurnSpeed(  0 );
+      robot->avoidcount = 0;
+      robot->pos->SetXSpeed( cruisespeed );   
+      robot->pos->SetTurnSpeed(  0 );
 
-  //     x_speed = cruisespeed;
-  //     turn_speed = 0;
+      x_speed = cruisespeed;
+      turn_speed = 0;
 
-  //   }
+    }
 
   sensor_msgs::LaserScan laserMsgs;
   const Stg::ModelRanger::Sensor& sensor = robot->laser->GetSensors()[0];
@@ -272,36 +224,37 @@ int stgLaserCB( Model* mod, ModelRobot* robot)
     }
   
 
-  // temp, just to check publish rate:
+  //temp, just to check publish rate:
   // if( allowNewMsg
   //     && laserMsgs.header.stamp > lastSentTime
   //     && rosCurPose.header.stamp > lastSentTime)
     
-      // if (turn_speed > 0.01 || turn_speed<-0.01)
+      if (turn_speed > 0.01 || turn_speed<-0.01)
       {
-        if (collision)
-        {
-          ROS_WARN("You collided");
-        }
+      if (collision)
+      {
+        ROS_WARN("You collided");
+      }
 
-        allowNewMsg = false;
-        dqn_stage_ros::stage_message stage_msg;
-        stage_msg.header.stamp = ros::Time::now();
-        stage_msg.collision = collision;
-        stage_msg.minFrontDist = minFrontDist;
-        stage_msg.position = rosCurPose;
-        stage_msg.laser = rosLaserData;
-        
-        pub_state_.publish(stage_msg);
+      allowNewMsg = false;
+      dqn_stage_ros::stage_message stage_msg;
+      stage_msg.header.stamp = ros::Time::now();
+      stage_msg.collision = collision;
+      stage_msg.minFrontDist = minFrontDist;
+      stage_msg.position = rosCurPose;
+      stage_msg.laser = rosLaserData;
+      
+      pub_state_.publish(stage_msg);
 
-        // publish the command velocity
-        geometry_msgs::TwistStamped twist_msg;
-        twist_msg.header.stamp = stage_msg.header.stamp;
-        twist_msg.twist.linear.x = robot->pos->GetVelocity().x;
-        twist_msg.twist.angular.z = robot->pos->GetVelocity().a;
-        pub_cmd_vel_.publish(twist_msg);
+      // publish the command velocity
+      geometry_msgs::TwistStamped twist_msg;
+      twist_msg.header.stamp = stage_msg.header.stamp;
+      twist_msg.twist.linear.x = x_speed;
+      twist_msg.twist.angular.z = turn_speed;
+      pub_cmd_vel_.publish(twist_msg);
+      
+
     }
-
   return 0;
 }
 
@@ -351,7 +304,8 @@ extern "C" int Init( Model* mod )
   Model *floorplan = robot->pos->GetWorld()->GetModel("blank");
   map.initMap(
     floorplan->GetGeom().size.x,
-    floorplan->GetGeom().size.y
+    floorplan->GetGeom().size.y,
+    robot->pos->GetPose()
   );
 
   return 0; //ok

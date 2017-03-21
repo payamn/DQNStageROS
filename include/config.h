@@ -1,6 +1,12 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define MAP_LEAST_COUNT 0.5 // in meters
+#define MAP_LEAST_COUNT 0.1 // in meters
+
+#define CURRENT_ROBOT_COLOR 255
+#define PREVIOUS_ROBOT_TRAJECTORY_COLOR 180
+
+#define OBSTACLE_COLOR 127
+#define EXPLORED_AREA_COLOR 30
 
 #endif
