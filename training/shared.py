@@ -13,7 +13,7 @@ slim = tf.contrib.slim
 
 NUM_EPOCHS = 100000
 SHARD_SIZE = 10000
-BATCH_SIZE = 32
+BATCH_SIZE = 256
 _FILE_PATTERN = 'wanderer_%s_*.tfrecords'
 _ITEMS_TO_DESCRIPTIONS = {
     'cmd_vel/linear': '',
@@ -102,14 +102,14 @@ def my_cnn(inputs, is_training):  # is_training is not used...
             # net = tf.nn.conv1d(inputs, [], stride=2, padding="VALID")
 
             # Creates a fully connected layer from the inputs with 32 hidden units.
-            net = slim.fully_connected(inputs, 32, scope='fc1')
+            net = slim.fully_connected(inputs, 64, scope='fc1')
             end_points['fc1'] = net
 
             # Adds a dropout layer to prevent over-fitting.
             net = slim.dropout(net, 0.8, is_training=is_training)
 
             # Adds another fully connected layer with 16 hidden units.
-            net = slim.fully_connected(net, 16, scope='fc2')
+            net = slim.fully_connected(net, 16, scope='fc3')
             end_points['fc2'] = net
 
             # Creates a fully-connected layer with a single hidden unit. Note that the

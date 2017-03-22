@@ -31,8 +31,9 @@ class CmdVelPublisher:
 
         predictions, end_points = self.sess.run([self.predictions, self.end_points], feed_dict={self.input_tensor: rangeses})
         linear = predictions[0, 0]
+        #linear = 0.005
         angular = predictions[0, 1]
-
+#        linear = 1
         self.publish(linear, angular)
 
     def publish(self, linear, angular):

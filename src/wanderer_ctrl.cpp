@@ -197,7 +197,7 @@ void stgLaserCB( Model* mod, ModelRobot* robot)
   //     && laserMsgs.header.stamp > lastSentTime
   //     && rosCurPose.header.stamp > lastSentTime)
     
-      if (turn_speed > 0.01 || turn_speed<-0.01)
+    //if (turn_speed > 0.01 || turn_speed<-0.01)
       {
       if (collision)
       {
