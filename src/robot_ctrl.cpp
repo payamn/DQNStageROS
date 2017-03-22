@@ -27,12 +27,13 @@ ros::ServiceServer reset_srv_;
 geometry_msgs::PoseStamped rosCurPose;
 sensor_msgs::LaserScan rosLaserData;
 bool collision = false;
-bool allowNewMsg = true;
+volatile bool allowNewMsg = true;
 double minFrontDist;
 ros::Time lastSentTime;
 
 void stgPoseUpdateCB( Model* mod, ModelRobot* robot)
 {
+  ROS_INFO("Updating pose");
   geometry_msgs::PoseStamped positionMsg;
   positionMsg.pose.position.x = robot->pos->GetPose().x;
   positionMsg.pose.position.y = robot->pos->GetPose().y;
@@ -47,6 +48,7 @@ void stgLaserCB( Model* mod, ModelRobot* robot)
   sensor_msgs::LaserScan laserMsgs;
   const Stg::ModelRanger::Sensor& sensor = robot->laser->GetSensors()[0];
   double minDist = sensor.range.max;
+  ROS_WARN("received nw data");
   if( sensor.ranges.size() )
     {
       // Translate into ROS message format and publish
@@ -92,11 +94,12 @@ void stgLaserCB( Model* mod, ModelRobot* robot)
 
 
   //temp, just to check publish rate:
-  if( allowNewMsg
-      && laserMsgs.header.stamp > lastSentTime
-      && rosCurPose.header.stamp > lastSentTime)
+  //if( allowNewMsg
+    //  && laserMsgs.header.stamp > lastSentTime
+    //  && rosCurPose.header.stamp > lastSentTime)
     {
-      allowNewMsg = false;
+      ROS_INFO("sending data");
+      // allowNewMsg = false;
       dqn_stage_ros::stage_message msg;
       msg.header.stamp = ros::Time::now();
       msg.collision = collision;
@@ -109,7 +112,7 @@ void stgLaserCB( Model* mod, ModelRobot* robot)
 
 void rosVelocityCB( const geometry_msgs::TwistConstPtr vel)
 {
-// ROS_WARN("Vel recieved");
+  ROS_INFO("Vel recieved");
   robot->pos->SetXSpeed( vel->linear.x);
   robot->pos->SetTurnSpeed( vel->angular.z);
   lastSentTime = ros::Time::now();
@@ -129,7 +132,7 @@ extern "C" int Init( Model* mod )
 { 
   int argc = 0;
   char** argv;
-  ros::init( argc, argv, "target_controller_node");
+  ros::init( argc, argv, "robot_controller_node");
   n = new ros::NodeHandle();
   lastSentTime = ros::Time::now();
   pub_state_ = n->advertise<dqn_stage_ros::stage_message>("input_data", 15);

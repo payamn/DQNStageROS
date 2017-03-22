@@ -16,12 +16,13 @@ public:
     int getWidth() { return width_; }
     int getHeight() { return height_; }
 
-    void initMap(int width, int height, Stg::Pose robot_pose);
+    void initMap(int width, int height, Stg::ModelPosition* robot);
     
     // @output: 0 - success, 1 - failure
     int updateMap(Stg::Pose new_robot_pose, const Stg::ModelRanger::Sensor& sensor);
     int updateRobotPose(Stg::Pose new_robot_pose);
     int updateLaserScan(const Stg::ModelRanger::Sensor& sensor);
+    int drawRobot(unsigned char color);
 
     // utilities
     int convertToGridCoords(double x, double y, int &grid_x, int &grid_y);
@@ -31,8 +32,13 @@ protected:
     
     int width_;
     int height_;
-    Stg::Pose robot_pose_;
 
+    int robot_grid_size_x_;
+    int robot_grid_size_y_;
+
+    Stg::Pose robot_pose_;
+    Stg::Size robot_size_;
+    
     int setCell(double x, double y, unsigned int value);
     
 };

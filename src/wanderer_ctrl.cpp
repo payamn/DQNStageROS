@@ -229,7 +229,7 @@ int stgLaserCB( Model* mod, ModelRobot* robot)
   //     && laserMsgs.header.stamp > lastSentTime
   //     && rosCurPose.header.stamp > lastSentTime)
     
-      if (turn_speed > 0.01 || turn_speed<-0.01)
+      // if (turn_speed > 0.01 || turn_speed<-0.01)
       {
       if (collision)
       {
@@ -255,7 +255,8 @@ int stgLaserCB( Model* mod, ModelRobot* robot)
       
 
     }
-  return 0;
+
+    return 0;
 }
 
 void rosVelocityCB( const geometry_msgs::TwistConstPtr vel)
@@ -305,8 +306,10 @@ extern "C" int Init( Model* mod )
   map.initMap(
     floorplan->GetGeom().size.x,
     floorplan->GetGeom().size.y,
-    robot->pos->GetPose()
+    robot->pos
   );
+
+  ROS_INFO("%f, %f, %f", robot->pos->GetGeom().size.x, robot->pos->GetGeom().size.y, robot->pos->GetGeom().size.z);
 
   return 0; //ok
 }

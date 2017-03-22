@@ -4,14 +4,54 @@
 #include <cmath>
 #include <limits>
 
-void Map::initMap(int width, int height, Stg::Pose robot_pose)
+void Map::initMap(int width, int height, Stg::ModelPosition* robot)
 {
-    width_ = width / (float) MAP_LEAST_COUNT;
-    height_ = height / (float) MAP_LEAST_COUNT;
+    width_ = round(width / (float) MAP_LEAST_COUNT);
+    height_ = round(height / (float) MAP_LEAST_COUNT);
     map_ = cv::Mat::zeros(height_, width_, CV_8UC1);
 
-    robot_pose_ = robot_pose;
-    setCell(robot_pose_.x, robot_pose_.y, CURRENT_ROBOT_COLOR);
+    robot_pose_ = robot->GetPose();
+    robot_size_ = robot->GetGeom().size;
+    
+    robot_grid_size_x_ = round(robot_size_.x / (float) MAP_LEAST_COUNT);
+    robot_grid_size_y_ = round(robot_size_.y / (float) MAP_LEAST_COUNT);
+        
+    drawRobot(CURRENT_ROBOT_COLOR);
+}
+
+int Map::drawRobot(unsigned char color)
+{
+    int grid_x;
+    int grid_y;
+
+    if (convertToGridCoords(robot_pose_.x, robot_pose_.y, grid_x, grid_y)) {
+        return 1;
+    }
+
+    cv::RotatedRect robot_rect = cv::RotatedRect(
+        cv::Point2f(grid_x, grid_y), 
+        cv::Size2f(robot_grid_size_x_, robot_grid_size_y_), 
+        -robot_pose_.a * 180 / M_PI
+    );
+
+    cv::Point2f vertices2f[4];
+    cv::Point vertices[4];
+    
+    robot_rect.points(vertices2f);
+
+    for(int i = 0; i < 4; ++i) {
+        vertices[i] = vertices2f[i];
+    }
+    
+    cv::fillConvexPoly(
+        map_,
+        vertices,
+        4,
+        color
+    );
+
+
+    return 0;
 }
 
 int Map::updateMap(Stg::Pose new_robot_pose, const Stg::ModelRanger::Sensor& sensor)
@@ -30,10 +70,12 @@ int Map::updateMap(Stg::Pose new_robot_pose, const Stg::ModelRanger::Sensor& sen
 
 int Map::updateRobotPose(Stg::Pose new_robot_pose)
 {
-    setCell(robot_pose_.x, robot_pose_.y, PREVIOUS_ROBOT_TRAJECTORY_COLOR);   
+    drawRobot(PREVIOUS_ROBOT_TRAJECTORY_COLOR);
+    // setCell(robot_pose_.x, robot_pose_.y, PREVIOUS_ROBOT_TRAJECTORY_COLOR);   
 
     robot_pose_ = new_robot_pose;
-    return setCell(robot_pose_.x, robot_pose_.y, CURRENT_ROBOT_COLOR);
+    return drawRobot(CURRENT_ROBOT_COLOR);
+    // return setCell(robot_pose_.x, robot_pose_.y, CURRENT_ROBOT_COLOR);
 }
 
 int Map::updateLaserScan(const Stg::ModelRanger::Sensor& sensor)
