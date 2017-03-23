@@ -9,7 +9,7 @@
 // #define OBSTACLE_COLOR 127
 // #define EXPLORED_AREA_COLOR 30
 
-#define OBSTACLE_COLOR 64
+#define OBSTACLE_COLOR 80
 #define EXPLORED_AREA_COLOR 128
 
 #endif
