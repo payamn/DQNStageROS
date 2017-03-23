@@ -53,21 +53,6 @@ ros::Time lastSentTime;
 
 Map map;
 
-void updateMap()
-{
-  map.updateMap(robot->pos->GetPose(), robot->laser->GetSensors()[0]);
-
-  // flip the image so that that it makes physical sense
-  cv::Mat flipped_map;               
-  cv::flip(map.getMap(), flipped_map, 0);
-
-  // publish the flipped image
-  image_pub_.publish(
-    cv_bridge::CvImage(std_msgs::Header(), "mono8", flipped_map).toImageMsg()
-  );
-
-}
-
 int stgPoseUpdateCB( Model* mod, ModelRobot* robot)
 {
   geometry_msgs::PoseStamped positionMsg;
@@ -86,7 +71,7 @@ int stgPoseUpdateCB( Model* mod, ModelRobot* robot)
 
 int stgLaserCB( Model* mod, ModelRobot* robot)
 {
-  updateMap();
+  map.updateMap(robot->pos->GetPose(), robot->laser->GetSensors()[0]);
 
   // get the data
   const std::vector<meters_t>& scan = robot->laser->GetSensors()[0].ranges;
@@ -231,30 +216,38 @@ int stgLaserCB( Model* mod, ModelRobot* robot)
     
       // if (turn_speed > 0.01 || turn_speed<-0.01)
       {
-      if (collision)
-      {
-        ROS_WARN("You collided");
+        if (collision)
+        {
+          ROS_WARN("You collided");
+        }
+
+        allowNewMsg = false;
+        dqn_stage_ros::stage_message stage_msg;
+        stage_msg.header.stamp = ros::Time::now();
+        stage_msg.collision = collision;
+        stage_msg.minFrontDist = minFrontDist;
+        stage_msg.position = rosCurPose;
+        stage_msg.laser = rosLaserData;
+        
+        pub_state_.publish(stage_msg);
+
+        // publish the command velocity
+        geometry_msgs::TwistStamped twist_msg;
+        twist_msg.header.stamp = stage_msg.header.stamp;
+        twist_msg.twist.linear.x = x_speed;
+        twist_msg.twist.angular.z = turn_speed;
+        pub_cmd_vel_.publish(twist_msg);
+
+        // publish the map
+        // flip the image so that that it makes physical sense
+        cv::Mat flipped_map;               
+        cv::flip(map.getMap(), flipped_map, 0);
+
+        // publish the flipped image
+        sensor_msgs::ImagePtr img_msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", flipped_map).toImageMsg();
+        img_msg->header.stamp = stage_msg.header.stamp;
+        image_pub_.publish(img_msg);
       }
-
-      allowNewMsg = false;
-      dqn_stage_ros::stage_message stage_msg;
-      stage_msg.header.stamp = ros::Time::now();
-      stage_msg.collision = collision;
-      stage_msg.minFrontDist = minFrontDist;
-      stage_msg.position = rosCurPose;
-      stage_msg.laser = rosLaserData;
-      
-      pub_state_.publish(stage_msg);
-
-      // publish the command velocity
-      geometry_msgs::TwistStamped twist_msg;
-      twist_msg.header.stamp = stage_msg.header.stamp;
-      twist_msg.twist.linear.x = x_speed;
-      twist_msg.twist.angular.z = turn_speed;
-      pub_cmd_vel_.publish(twist_msg);
-      
-
-    }
 
     return 0;
 }
